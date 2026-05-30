@@ -3,14 +3,22 @@ services:
     build: .
     container_name: portfolio-app
     ports:
-      - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
     depends_on:
       postgre:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgre:5432/portfolio
-      SPRING_DATASOURCE_USERNAME: oun
-      SPRING_DATASOURCE_PASSWORD: oun
+      SERVER_PORT: 8080
+      APP_BASE_URL: ${APP_BASE_URL}
+
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+
+      SPRING_MAIL_HOST: ${SPRING_MAIL_HOST}
+      SPRING_MAIL_PORT: ${SPRING_MAIL_PORT}
+      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME}
+      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD}
     networks:
       - backend
 
@@ -18,15 +26,15 @@ services:
     image: postgres:17
     container_name: portfolio-db
     environment:
-      POSTGRES_USER: oun
-      POSTGRES_PASSWORD: oun
-      POSTGRES_DB: portfolio
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U oun"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -37,10 +45,10 @@ services:
     image: dpage/pgadmin4
     container_name: portfolio-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@admin.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
-      - "5050:80"
+      - "${PGADMIN_PORT:-5050}:80"
     depends_on:
       - postgre
     networks:
@@ -51,3 +59,67 @@ volumes:
 
 networks:
   backend:
+
+
+
+
+
+
+
+
+
+
+
+#services:
+#  app:
+#    build: .
+#    container_name: portfolio-app
+#    ports:
+#      - "8080:8080"
+#    depends_on:
+#      postgre:
+#        condition: service_healthy
+#    environment:
+#      SPRING_DATASOURCE_URL: jdbc:postgresql://postgre:5432/portfolio
+#      SPRING_DATASOURCE_USERNAME: oun
+#      SPRING_DATASOURCE_PASSWORD: oun
+#    networks:
+#      - backend
+#
+#  postgre:
+#    image: postgres:17
+#    container_name: portfolio-db
+#    environment:
+#      POSTGRES_USER: oun
+#      POSTGRES_PASSWORD: oun
+#      POSTGRES_DB: portfolio
+#    ports:
+#      - "5432:5432"
+#    volumes:
+#      - pgdata:/var/lib/postgresql/data
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U oun"]
+#      interval: 5s
+#      timeout: 5s
+#      retries: 5
+#    networks:
+#      - backend
+#
+#  pgadmin:
+#    image: dpage/pgadmin4
+#    container_name: portfolio-pgadmin
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+#      PGADMIN_DEFAULT_PASSWORD: admin
+#    ports:
+#      - "5050:80"
+#    depends_on:
+#      - postgre
+#    networks:
+#      - backend
+#
+#volumes:
+#  pgdata:
+#
+#networks:
+#  backend:

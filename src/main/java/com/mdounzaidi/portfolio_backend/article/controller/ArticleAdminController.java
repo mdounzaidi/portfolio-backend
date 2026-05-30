@@ -27,4 +27,6 @@ public class ArticleAdminController {
     public ResponseEntity<ArticleResponse> getBySlugForAdmin(@PathVariable String slug){
         return ResponseEntity.ok(articleService.findSlugForAdmin(slug));
     }
+
+
 }

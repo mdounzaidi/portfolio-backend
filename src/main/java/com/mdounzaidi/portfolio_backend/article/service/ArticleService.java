@@ -3,9 +3,16 @@ package com.mdounzaidi.portfolio_backend.article.service;
 import com.mdounzaidi.portfolio_backend.article.dto.ArticleRequest;
 import com.mdounzaidi.portfolio_backend.article.dto.ArticleResponse;
 import com.mdounzaidi.portfolio_backend.article.entity.Article;
+import com.mdounzaidi.portfolio_backend.article.entity.ArticleSearchView;
 import com.mdounzaidi.portfolio_backend.article.entity.ArticleStatus;
 import com.mdounzaidi.portfolio_backend.article.repository.ArticleRepository;
+import org.jspecify.annotations.Nullable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 public class ArticleService {
@@ -64,5 +71,19 @@ public class ArticleService {
                         ()-> new RuntimeException("no article find by slug name")
                 );
         return makeArticleResponse(article);
+    }
+
+    public Page<ArticleSearchView> searchArticleByKeyword(String keyword, int page, int size) {
+        int safeSize=Math.max(size,1);
+        safeSize=Math.min(safeSize,20);
+        Pageable pageable= PageRequest.of(Math.max(page,0),safeSize);
+
+        if (keyword==null) return Page.empty(pageable);
+        String trimmedKeyword=keyword.trim();
+
+        if(trimmedKeyword.length()<2)
+            return Page.empty(pageable);
+
+        return articleRepository.findByTitleContainingIgnoreCaseAndArticleStatus(trimmedKeyword,ArticleStatus.PUBLISHED,pageable);
     }
 }
