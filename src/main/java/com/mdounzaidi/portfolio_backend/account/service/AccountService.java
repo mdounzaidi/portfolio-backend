@@ -1,8 +1,11 @@
 package com.mdounzaidi.portfolio_backend.account.service;
 
-import ch.qos.logback.core.util.StringUtil;
+
 import com.mdounzaidi.portfolio_backend.account.dto.*;
 import com.mdounzaidi.portfolio_backend.account.entity.*;
+import com.mdounzaidi.portfolio_backend.account.exception.AccountNotFoundException;
+import com.mdounzaidi.portfolio_backend.account.exception.DuplicateAccountException;
+import com.mdounzaidi.portfolio_backend.account.exception.InvalidPasswordException;
 import com.mdounzaidi.portfolio_backend.account.mapper.AccountMapper;
 import com.mdounzaidi.portfolio_backend.account.repository.AccountRepository;
 import lombok.AllArgsConstructor;
@@ -24,38 +27,37 @@ public class AccountService {
     private final AccountMailService mailService;
     private final AccountTokenService tokenService;
     private final PasswordEncoder passwordEncoder;
+    private final AccountIdentifierNormalizer identifierNormalizer;
 
 
     // to create new user account
     @Transactional
     public AccountResponse registerAccount(AccountRequest accountRequest) {
-        try{
-            Account newAccount = buildAccount(accountRequest);
-            Account saveAccount = accountRepository.save(newAccount);
+        Account newAccount = buildAccount(accountRequest);
+        Account saveAccount = accountRepository.save(newAccount);
 
-            VerificationToken token = tokenService.createToken(saveAccount,(60*5));
-
-            mailService.sendEmailVerificationMail(saveAccount.getEmail(), token.getToken());
-            return accountMapper.buildAccountResponse(saveAccount);
-        }
-        catch (Exception e){
-            throw new RuntimeException(e);
-        }
-
+        sendEmailVerification(saveAccount);
+        return accountMapper.buildAccountResponse(saveAccount);
 
     }
 
     // account builder
     public Account buildAccount(AccountRequest accountRequest){
-        if(usernameExists(accountRequest.getUsername()))
-            throw new RuntimeException("UserName already exist please try again later");
-        if(!accountRepository.findByEmail(accountRequest.getEmail()).isEmpty())
-            throw new RuntimeException("User already exist please try again later");
+        String username = identifierNormalizer.username(accountRequest.getUsername());
+        String email = identifierNormalizer.email(accountRequest.getEmail());
+
+        if (usernameExists(username)) {
+            throw new DuplicateAccountException("Username already exists");
+        }
+
+        if (accountRepository.findByEmail(email).isPresent()) {
+            throw new DuplicateAccountException("Email already exists");
+        }
         return Account.builder()
                 .firstName(accountRequest.getFirstName())
                 .lastName(accountRequest.getLastName())
-                .username(accountRequest.getUsername())
-                .email(accountRequest.getEmail())
+                .username(username)
+                .email(email)
                 .password(passwordEncoder.encode(accountRequest.getPassword()))
                 .active(false)
                 .build();
@@ -70,28 +72,24 @@ public class AccountService {
     @Transactional
     public Account getCurrentAccount(){
         Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
-        String userName=authentication.getName();
-        return  accountRepository.findByUsername(userName).orElseThrow(()->new RuntimeException("User Not Found"));
+        String userName=identifierNormalizer.username(authentication.getName());
+        return  accountRepository.findByUsername(userName).orElseThrow(()->new AccountNotFoundException("Account not found"));
     }
 
     public boolean usernameExists(String userName){
-        try{
-            accountRepository.findByUsername(userName).orElseThrow(()->new RuntimeException("User Not Found"));
-            return true;
-        }
-        catch (Exception e){
-            return false;
-        }
+        return accountRepository.findByUsername(identifierNormalizer.username(userName)).isPresent();
     }
 
 
     @Transactional
     public AccountResponse updateCurrentAccount(AccountUpdateRequest accountUpdateRequest) {
         Account account=getCurrentAccount();
-        String newUserName=accountUpdateRequest.getUsername();
-        if(StringUtils.hasText(newUserName) && !newUserName.equalsIgnoreCase(account.getUsername())){
+        boolean emailChanged = false;
+
+        String newUserName=identifierNormalizer.username(accountUpdateRequest.getUsername());
+        if(StringUtils.hasText(newUserName) && !newUserName.equals(account.getUsername())){
             if(usernameExists(newUserName))
-                throw new RuntimeException("UserName already exist");
+                throw new DuplicateAccountException("Username already exists");
             account.setUsername(newUserName);
         }
         String firstName=accountUpdateRequest.getFirstName();
@@ -102,7 +100,21 @@ public class AccountService {
         if(StringUtils.hasText(lastName) ){
             account.setLastName(lastName);
         }
+        String newEmail = identifierNormalizer.email(accountUpdateRequest.getEmail());
+        if (StringUtils.hasText(newEmail) && !newEmail.equals(account.getEmail())) {
+            if (accountRepository.findByEmail(newEmail).isPresent()) {
+                throw new DuplicateAccountException("Email already exists");
+            }
+            account.setEmail(newEmail);
+            account.setEmailVerified(false);
+            emailChanged = true;
+        }
         Account savedAccount=accountRepository.save(account);
+
+        if (emailChanged) {
+            sendEmailVerification(savedAccount);
+        }
+
         return accountMapper.buildAccountResponse(savedAccount);
 
     }
@@ -111,12 +123,23 @@ public class AccountService {
     public String changePassword(AccountPassUpdateRequest pass) {
         Account account=getCurrentAccount();
         if(!passwordEncoder.matches(pass.getOldPassword(), account.getPassword()))
-            throw new RuntimeException("invalid password");
+            throw new InvalidPasswordException("Invalid password");
         account.setPassword(passwordEncoder.encode(pass.getNewPassword()));
         accountRepository.save(account);
         return "password updated";
     }
 
+    private void sendEmailVerification(Account account) {
+        tokenService.revokeActiveTokens(account, TokenPurpose.EMAIL_VERIFICATION);
+
+        GeneratedToken generatedToken = tokenService.createToken(
+                account,
+                60 * 5,
+                TokenPurpose.EMAIL_VERIFICATION
+        );
+
+        mailService.sendEmailVerificationMail(account.getEmail(), generatedToken.rawToken());
+    }
 
 
 }

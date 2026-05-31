@@ -1,5 +1,6 @@
 package com.mdounzaidi.portfolio_backend.account.security;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -21,6 +22,8 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth->
                         auth
+                                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
+                                .requestMatchers("/error").permitAll()
                                 .requestMatchers("/api/public/**").permitAll()
                                 .anyRequest().authenticated()
                 )

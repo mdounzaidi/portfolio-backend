@@ -1,20 +1,26 @@
 package com.mdounzaidi.portfolio_backend.account.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Table;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import jakarta.persistence.*;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-
+import lombok.Setter;
 import java.time.LocalDateTime;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "Invite_Details")
+@Table(
+        name = "invite_details",
+        indexes = {
+                @Index(name = "idx_invite_details_email", columnList = "email"),
+                @Index(name = "idx_invite_details_token", columnList = "verification_token_id"),
+                @Index(name = "idx_invite_details_inviter", columnList = "invited_by_account_id"),
+                @Index(name = "idx_invite_details_state", columnList = "active, account_created")
+        }
+)
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -22,21 +28,34 @@ public class InviteDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    Long Id;
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "invited_by_account_id", nullable = false)
+    private Account inviteBy;
 
     @OneToOne
-    Account inviteBy;
-    @OneToOne
-    VerificationToken verificationToken;
+    @JoinColumn(name = "verification_token_id", nullable = false)
+    private VerificationToken verificationToken;
 
     @Column(nullable = false)
-    String name;
+    private String name;
+
     @Column(nullable = false)
-    String email;
-    LocalDateTime createdAt;
-    AccountRole accountRole;
+    private String email;
+
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_role", nullable = false)
+    private AccountRole accountRole;
+
     @Builder.Default
-    boolean active=true;
+    @Column(nullable = false)
+    private boolean active = true;
+
     @Builder.Default
-    boolean accountCreated =false;
+    @Column(name = "account_created", nullable = false)
+    private boolean accountCreated = false;
 }

@@ -1,0 +1,1513 @@
+{
+  "info": {
+    "name": "Portfolio Backend - Account Flow Tests",
+    "description": "Account-focused Postman collection for local testing. Run requests one by one. Tokens for email verification, password reset, and invite completion are sent by email, so paste the raw token from the email link into the matching collection variable before running token-based requests. This collection intentionally excludes article tests and JWT/auth redesign tests.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "primaryUsername",
+      "value": "testuser"
+    },
+    {
+      "key": "primaryPassword",
+      "value": "StrongPass@123"
+    },
+    {
+      "key": "primaryNewPassword",
+      "value": "StrongPass@456"
+    },
+    {
+      "key": "primaryEmail",
+      "value": "testuser@example.com"
+    },
+    {
+      "key": "primaryUpdatedEmail",
+      "value": "testuser.updated@example.com"
+    },
+    {
+      "key": "secondaryUsername",
+      "value": "seconduser"
+    },
+    {
+      "key": "secondaryEmail",
+      "value": "seconduser@example.com"
+    },
+    {
+      "key": "availableUsername",
+      "value": "availableuser"
+    },
+    {
+      "key": "adminUsername",
+      "value": "adminuser"
+    },
+    {
+      "key": "adminPassword",
+      "value": "StrongPass@123"
+    },
+    {
+      "key": "inviteName",
+      "value": "Invited User"
+    },
+    {
+      "key": "inviteEmail",
+      "value": "invited@example.com"
+    },
+    {
+      "key": "invitedUsername",
+      "value": "inviteduser"
+    },
+    {
+      "key": "invitedPassword",
+      "value": "StrongPass@123"
+    },
+    {
+      "key": "verificationToken",
+      "value": "PASTE_REGISTRATION_VERIFICATION_TOKEN_FROM_EMAIL"
+    },
+    {
+      "key": "updatedEmailVerificationToken",
+      "value": "PASTE_UPDATED_EMAIL_VERIFICATION_TOKEN_FROM_EMAIL"
+    },
+    {
+      "key": "resetTokenOne",
+      "value": "PASTE_FIRST_PASSWORD_RESET_TOKEN_FROM_EMAIL"
+    },
+    {
+      "key": "resetTokenTwo",
+      "value": "PASTE_SECOND_PASSWORD_RESET_TOKEN_FROM_EMAIL"
+    },
+    {
+      "key": "inviteToken",
+      "value": "PASTE_INVITE_TOKEN_FROM_EMAIL"
+    },
+    {
+      "key": "invalidToken",
+      "value": "not-a-real-token"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Read Me",
+      "item": [
+        {
+          "name": "How To Use This Collection",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080",
+              "host": [
+                "http://localhost:8080"
+              ]
+            },
+            "description": "This request is only a note holder. Recommended order: register primary account, paste verification token from email, verify account, then run protected requests. For password reset and invite requests, paste the token from the email into the matching collection variable before running the token-consuming request. Protected endpoints still use Basic Auth until the JWT phase."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "01 - Registration and Email Verification",
+      "item": [
+        {
+          "name": "01.01 Register Primary Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('register returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('response is unverified account', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.username).to.eql(pm.collectionVariables.get('primaryUsername'));",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('primaryEmail'));",
+                  "  pm.expect(body.emailVerified).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"username\": \"{{primaryUsername}}\",\n  \"email\": \"{{primaryEmail}}\",\n  \"password\": \"{{primaryPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/register",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "register"
+              ]
+            },
+            "description": "Creates the primary account and sends an email verification link. Paste the token from the email into collection variable verificationToken.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.02 Register Duplicate Primary Account - Expect 409",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('duplicate registration returns 409', function () {",
+                  "  pm.response.to.have.status(409);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"Duplicate\",\n  \"username\": \"{{primaryUsername}}\",\n  \"email\": \"{{primaryEmail}}\",\n  \"password\": \"{{primaryPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/register",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.03 Register Invalid Account DTO - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('invalid DTO returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"User\",\n  \"username\": \"ab\",\n  \"email\": \"not-an-email\",\n  \"password\": \"weak\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/register",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "register"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.04 Check Existing Username - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('existing username returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/check-username?userName={{primaryUsername}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "check-username"
+              ],
+              "query": [
+                {
+                  "key": "userName",
+                  "value": "{{primaryUsername}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.05 Check Available Username - Expect 200",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('available username returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/check-username?userName={{availableUsername}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "check-username"
+              ],
+              "query": [
+                {
+                  "key": "userName",
+                  "value": "{{availableUsername}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.06 Verify Invalid Token - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('invalid token returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/verify?token={{invalidToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "verify"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.07 Verify Primary Account With Email Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('verification returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/verify?token={{verificationToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "verify"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verificationToken}}"
+                }
+              ]
+            },
+            "description": "Before running, paste token from registration email into verificationToken.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "01.08 Reuse Verification Token - Expect 410",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('reused token returns 410', function () {",
+                  "  pm.response.to.have.status(410);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/verify?token={{verificationToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "verify"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{verificationToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Protected Account Requests",
+      "item": [
+        {
+          "name": "02.01 Get My Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('get me returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('response hides internal security fields', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.not.have.property('failedLoginAttempts');",
+                  "  pm.expect(body).to.not.have.property('lockedAt');",
+                  "  pm.expect(body).to.not.have.property('lastLoginAt');",
+                  "  pm.expect(body).to.not.have.property('password');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/auth/me",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.02 Update Name Only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('update name returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('email remains verified after name-only update', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.firstName).to.eql('Updated');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/update",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "update"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.03 Update Email - Sends New Verification",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('update email returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('email is updated and unverified', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('primaryUpdatedEmail'));",
+                  "  pm.expect(body.emailVerified).to.eql(false);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{primaryUpdatedEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/update",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "update"
+              ]
+            },
+            "description": "After running, paste the token from the new verification email into updatedEmailVerificationToken."
+          },
+          "response": []
+        },
+        {
+          "name": "02.04 Verify Updated Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('updated email verification returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/verify?token={{updatedEmailVerificationToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "verify"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{updatedEmailVerificationToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.05 Change Password With Wrong Old Password - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('wrong old password returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"WrongPass@123\",\n  \"newPassword\": \"{{primaryNewPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/change-password",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02.06 Change Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('password change returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"oldPassword\": \"{{primaryPassword}}\",\n  \"newPassword\": \"{{primaryNewPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/change-password",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "change-password"
+              ]
+            },
+            "description": "After this succeeds, protected requests must use primaryNewPassword unless you reset/change it again."
+          },
+          "response": []
+        },
+        {
+          "name": "02.07 Get My Account With New Password",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('new password works', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryNewPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/auth/me",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Password Reset Flow",
+      "item": [
+        {
+          "name": "03.01 Request Password Reset For Existing User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('reset request returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('generic response', function () {",
+                  "  pm.expect(pm.response.text()).to.include('If an account exists');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/generate?userName={{primaryUsername}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "generate"
+              ],
+              "query": [
+                {
+                  "key": "userName",
+                  "value": "{{primaryUsername}}"
+                }
+              ]
+            },
+            "description": "Paste token from email into resetTokenOne.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.02 Request Password Reset For Missing User - Same Response",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('missing user reset request returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('same generic response', function () {",
+                  "  pm.expect(pm.response.text()).to.include('If an account exists');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/generate?userName=missinguser",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "generate"
+              ],
+              "query": [
+                {
+                  "key": "userName",
+                  "value": "missinguser"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.03 Request Password Reset Again To Revoke First Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('second reset request returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/generate?userName={{primaryUsername}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "generate"
+              ],
+              "query": [
+                {
+                  "key": "userName",
+                  "value": "{{primaryUsername}}"
+                }
+              ]
+            },
+            "description": "Paste token from second email into resetTokenTwo. The first reset token should now fail.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.04 Use First Reset Token After Revocation - Expect 410",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('revoked reset token returns 410', function () {",
+                  "  pm.response.to.have.status(410);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{primaryUsername}}\",\n  \"password\": \"{{primaryPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/update?token={{resetTokenOne}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "update"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{resetTokenOne}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.05 Reset Password With Second Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('valid reset token returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{primaryUsername}}\",\n  \"password\": \"{{primaryNewPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/update?token={{resetTokenTwo}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "update"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{resetTokenTwo}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.06 Reuse Second Reset Token - Expect 410",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('used reset token returns 410', function () {",
+                  "  pm.response.to.have.status(410);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{primaryUsername}}\",\n  \"password\": \"{{primaryPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/update?token={{resetTokenTwo}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "update"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{resetTokenTwo}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "03.07 Reset Password With Invalid Token - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('invalid reset token returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userName\": \"{{primaryUsername}}\",\n  \"password\": \"{{primaryPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/reset-password/update?token={{invalidToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "reset-password",
+                "update"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Invite Flow",
+      "item": [
+        {
+          "name": "04.01 Invite Writer As Normal User - Expect 403",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('normal user invite returns 403', function () {",
+                  "  pm.response.to.have.status(403);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{primaryUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{primaryNewPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountRole\": \"ROLE_WRITER\",\n  \"name\": \"{{inviteName}}\",\n  \"email\": \"{{inviteEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/invite",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "invite"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.02 Invite Writer As Admin/Superadmin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('admin invite returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{adminUsername}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{adminPassword}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountRole\": \"ROLE_WRITER\",\n  \"name\": \"{{inviteName}}\",\n  \"email\": \"{{inviteEmail}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/auth/invite",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "invite"
+              ]
+            },
+            "description": "Requires a manually prepared admin/superadmin account until JWT/admin bootstrap is implemented. Paste token from invite email into inviteToken."
+          },
+          "response": []
+        },
+        {
+          "name": "04.03 Complete Invite With Invalid Token - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('invalid invite token returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Invited\",\n  \"lastName\": \"User\",\n  \"username\": \"{{invitedUsername}}\",\n  \"email\": \"{{inviteEmail}}\",\n  \"password\": \"{{invitedPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/complete-invite?token={{invalidToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "complete-invite"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{invalidToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.04 Complete Invite With Wrong Email - Expect 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('wrong invite email returns 400', function () {",
+                  "  pm.response.to.have.status(400);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Invited\",\n  \"lastName\": \"WrongEmail\",\n  \"username\": \"{{invitedUsername}}\",\n  \"email\": \"wrong.invite@example.com\",\n  \"password\": \"{{invitedPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/complete-invite?token={{inviteToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "complete-invite"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{inviteToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.05 Complete Invite With Correct Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('complete invite returns 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('invited account is verified', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.email).to.eql(pm.collectionVariables.get('inviteEmail'));",
+                  "  pm.expect(body.emailVerified).to.eql(true);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Invited\",\n  \"lastName\": \"User\",\n  \"username\": \"{{invitedUsername}}\",\n  \"email\": \"{{inviteEmail}}\",\n  \"password\": \"{{invitedPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/complete-invite?token={{inviteToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "complete-invite"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{inviteToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "04.06 Reuse Invite Token - Expect 410",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('used invite token returns 410', function () {",
+                  "  pm.response.to.have.status(410);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Invited\",\n  \"lastName\": \"Again\",\n  \"username\": \"invitedagain\",\n  \"email\": \"{{inviteEmail}}\",\n  \"password\": \"{{invitedPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/public/complete-invite?token={{inviteToken}}",
+              "host": [
+                "http://localhost:8080"
+              ],
+              "path": [
+                "api",
+                "public",
+                "complete-invite"
+              ],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{inviteToken}}"
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

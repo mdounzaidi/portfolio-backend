@@ -16,13 +16,7 @@ public class AccountMapper {
                 .email(acc.getEmail())
                 .createdAt(acc.getCreatedAt())
                 .updatedAt(acc.getUpdatedAt())
-                .accountRole(acc.getAccountRole())
-                .active(acc.isActive())
                 .emailVerified(acc.isEmailVerified())
-                .accountNonLocked(acc.isAccountNonLocked())
-                .failedLoginAttempts(acc.getFailedLoginAttempts())
-                .lockedAt(acc.getLockedAt())
-                .lastLoginAt(acc.getLastLoginAt())
                 .build();
     }
 
