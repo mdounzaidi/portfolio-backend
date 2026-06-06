@@ -12,9 +12,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -28,11 +33,19 @@ class AccountVerificationServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private AccountMailService mailService;
+
     private AccountVerificationService verificationService;
 
     @BeforeEach
     void setUp() {
-        verificationService = new AccountVerificationService(tokenService, accountRepository);
+        verificationService = new AccountVerificationService(
+                tokenService,
+                accountRepository,
+                mailService,
+                new AccountIdentifierNormalizer()
+        );
     }
 
     @Test
@@ -72,6 +85,43 @@ class AccountVerificationServiceTest {
 
         verify(accountRepository, never()).save(account);
         verify(tokenService, never()).markUsed(token);
+    }
+
+    @Test
+    void resendVerificationEmail_shouldSendVerification_whenAccountExistsAndIsUnverified() {
+        Account account = Account.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .emailVerified(false)
+                .build();
+        VerificationToken token = verificationToken(account);
+        when(accountRepository.findByUsernameOrEmail("testuser", "testuser"))
+                .thenReturn(Optional.of(account));
+        when(tokenService.createToken(account, 60 * 5, TokenPurpose.EMAIL_VERIFICATION))
+                .thenReturn(new GeneratedToken("raw-token", token));
+
+        String response = verificationService.resendVerificationEmail(" TestUser ");
+
+        assertEquals("If an unverified account exists, a verification email will be sent.", response);
+        verify(tokenService).revokeActiveTokens(account, TokenPurpose.EMAIL_VERIFICATION);
+        verify(mailService).sendEmailVerificationMail("test@example.com", "raw-token");
+    }
+
+    @Test
+    void resendVerificationEmail_shouldReturnGenericResponse_whenAccountIsAlreadyVerified() {
+        Account account = Account.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .emailVerified(true)
+                .build();
+        when(accountRepository.findByUsernameOrEmail("testuser", "testuser"))
+                .thenReturn(Optional.of(account));
+
+        String response = verificationService.resendVerificationEmail("testuser");
+
+        assertEquals("If an unverified account exists, a verification email will be sent.", response);
+        verify(tokenService, never()).createToken(any(), anyInt(), any());
+        verify(mailService, never()).sendEmailVerificationMail(anyString(), anyString());
     }
 
     private VerificationToken verificationToken(Account account) {

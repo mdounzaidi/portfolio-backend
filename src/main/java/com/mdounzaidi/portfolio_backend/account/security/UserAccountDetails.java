@@ -1,18 +1,22 @@
 package com.mdounzaidi.portfolio_backend.account.security;
+
 import com.mdounzaidi.portfolio_backend.account.entity.Account;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import java.util.Collection;
-import java.util.List;
 
+import java.util.Collection;
 
 public class UserAccountDetails implements UserDetails {
 
     private final Account account;
 
-    public UserAccountDetails(Account account){
-        this.account=account;
+    public UserAccountDetails(Account account) {
+        this.account = account;
+    }
+
+    public Account getAccount() {
+        return account;
     }
 
     @Override
@@ -23,7 +27,7 @@ public class UserAccountDetails implements UserDetails {
     }
 
     @Override
-    public String getPassword(){
+    public String getPassword() {
         return account.getPassword();
     }
 
@@ -51,5 +55,4 @@ public class UserAccountDetails implements UserDetails {
     public boolean isEnabled() {
         return account.isActive();
     }
-
 }

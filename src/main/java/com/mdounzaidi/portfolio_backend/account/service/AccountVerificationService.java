@@ -17,6 +17,8 @@ public class AccountVerificationService {
 
     private final AccountTokenService tokenService;
     private final AccountRepository accountRepository;
+    private final AccountMailService mailService;
+    private final AccountIdentifierNormalizer identifierNormalizer;
 
     //
     @Transactional
@@ -35,6 +37,30 @@ public class AccountVerificationService {
         accountRepository.save(account);
         tokenService.markUsed(verificationToken);
         return "Account Verified";
+    }
+
+    @Transactional
+    public String resendVerificationEmail(String identifier) {
+        String response = "If an unverified account exists, a verification email will be sent.";
+        String normalizedIdentifier = identifierNormalizer.username(identifier);
+
+        accountRepository.findByUsernameOrEmail(normalizedIdentifier, normalizedIdentifier)
+                .filter(account -> !account.isEmailVerified())
+                .ifPresent(this::sendEmailVerification);
+
+        return response;
+    }
+
+    private void sendEmailVerification(Account account) {
+        tokenService.revokeActiveTokens(account, TokenPurpose.EMAIL_VERIFICATION);
+
+        GeneratedToken generatedToken = tokenService.createToken(
+                account,
+                60 * 5,
+                TokenPurpose.EMAIL_VERIFICATION
+        );
+
+        mailService.sendEmailVerificationMail(account.getEmail(), generatedToken.rawToken());
     }
 
 }

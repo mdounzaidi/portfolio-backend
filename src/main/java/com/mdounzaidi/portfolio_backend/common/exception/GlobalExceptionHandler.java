@@ -95,10 +95,25 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ProblemDetail> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        String detail = "Request conflicts with existing data";
+        Throwable mostSpecificCause = ex.getMostSpecificCause();
+
+        if (mostSpecificCause != null && mostSpecificCause.getMessage() != null) {
+            String message = mostSpecificCause.getMessage().toLowerCase();
+
+            if (message.contains("username")) {
+                detail = "Username already exists";
+            } else if (message.contains("email")) {
+                detail = "Email already exists";
+            } else if (message.contains("slug") || message.contains("uk_article_slug")) {
+                detail = "Article slug already exists";
+            }
+        }
+
         return ResponseEntity.status(HttpStatus.CONFLICT).body(buildProblem(
                 HttpStatus.CONFLICT,
                 "Data conflict",
-                "Request conflicts with existing data"
+                detail
         ));
     }
 

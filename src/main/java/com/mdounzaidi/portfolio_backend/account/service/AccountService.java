@@ -12,9 +12,13 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.Optional;
 
 //   Account roles mapping still looks risky will need to check
 @AllArgsConstructor
@@ -72,8 +76,50 @@ public class AccountService {
     @Transactional
     public Account getCurrentAccount(){
         Authentication authentication=SecurityContextHolder.getContext().getAuthentication();
+        Optional<Long> accountId = extractJwtAccountId(authentication);
+
+        if (accountId.isPresent()) {
+            return accountRepository
+                    .findById(accountId.get())
+                    .orElseThrow(() -> new AccountNotFoundException("Account not found"));
+        }
+
         String userName=identifierNormalizer.username(authentication.getName());
-        return  accountRepository.findByUsername(userName).orElseThrow(()->new AccountNotFoundException("Account not found"));
+        return accountRepository
+                .findByUsername(userName)
+                .orElseThrow(()->new AccountNotFoundException("Account not found"));
+    }
+
+    private Optional<Long> extractJwtAccountId(Authentication authentication) {
+        if (authentication == null) {
+            return Optional.empty();
+        }
+
+        Jwt jwt = null;
+        if (authentication instanceof JwtAuthenticationToken jwtAuthenticationToken) {
+            jwt = jwtAuthenticationToken.getToken();
+        } else if (authentication.getPrincipal() instanceof Jwt principalJwt) {
+            jwt = principalJwt;
+        }
+
+        if (jwt == null) {
+            return Optional.empty();
+        }
+
+        Object accountId = jwt.getClaims().get("accountId");
+        if (accountId instanceof Number number) {
+            return Optional.of(number.longValue());
+        }
+
+        if (accountId instanceof String value && StringUtils.hasText(value)) {
+            try {
+                return Optional.of(Long.parseLong(value));
+            } catch (NumberFormatException ex) {
+                return Optional.empty();
+            }
+        }
+
+        return Optional.empty();
     }
 
     public boolean usernameExists(String userName){

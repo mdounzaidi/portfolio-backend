@@ -36,6 +36,7 @@ Thumbs.db
 # =========================
 .env
 .env.*
+!.env.example
 
 # =========================
 # Docker
@@ -47,6 +48,7 @@ docker-data/
 # Database
 # =========================
 *.sql
+!src/main/resources/db/migration/*.sql
 *.db
 
 # =========================

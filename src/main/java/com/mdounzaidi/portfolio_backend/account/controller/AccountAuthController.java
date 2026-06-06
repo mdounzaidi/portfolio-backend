@@ -10,6 +10,7 @@ import com.mdounzaidi.portfolio_backend.common.dto.MessageResponse;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,7 @@ public class AccountAuthController {
     private final AccountService accountService;
     private final AccountInviteService accountInviteService;
 
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_SUPERADMIN')")
     @PostMapping({"/invite", "/invites"})
     public ResponseEntity<MessageResponse> inviteAccountUser(@Valid @RequestBody InviteDetailsRequest inviteDetailsRequest) {
         return ResponseEntity

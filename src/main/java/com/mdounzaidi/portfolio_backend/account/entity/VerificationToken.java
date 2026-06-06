@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(
+        schema = "account",
         name = "verification_token",
         indexes = {
                 @Index(name = "idx_verification_token_account_purpose", columnList = "account_id, purpose"),

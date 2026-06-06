@@ -63,7 +63,8 @@ class AccountPasswordResetServiceTest {
 
     @Test
     void requestPasswordReset_shouldReturnGenericResponse_whenAccountDoesNotExist() {
-        when(accountRepository.findByUsername("missinguser")).thenReturn(Optional.empty());
+        when(accountRepository.findByUsernameOrEmail("missinguser", "missinguser"))
+                .thenReturn(Optional.empty());
 
         String response = passwordResetService.requestPasswordReset(" MissingUser ");
 
@@ -85,7 +86,8 @@ class AccountPasswordResetServiceTest {
                 .active(true)
                 .build();
         VerificationToken newToken = verificationToken(account, TokenPurpose.PASSWORD_RESET);
-        when(accountRepository.findByUsername("testuser")).thenReturn(Optional.of(account));
+        when(accountRepository.findByUsernameOrEmail("testuser", "testuser"))
+                .thenReturn(Optional.of(account));
         when(resetPassRepository.findByAccountAndActiveTrue(account)).thenReturn(List.of(oldRequest));
         when(tokenService.createToken(account, 60 * 60, TokenPurpose.PASSWORD_RESET))
                 .thenReturn(new GeneratedToken("raw-reset-token", newToken));
@@ -180,7 +182,8 @@ class AccountPasswordResetServiceTest {
                 .build();
         VerificationToken newToken = verificationToken(account, TokenPurpose.PASSWORD_RESET);
         ArgumentCaptor<ResetPassDetails> resetRequestCaptor = ArgumentCaptor.forClass(ResetPassDetails.class);
-        when(accountRepository.findByUsername("testuser")).thenReturn(Optional.of(account));
+        when(accountRepository.findByUsernameOrEmail("testuser", "testuser"))
+                .thenReturn(Optional.of(account));
         when(resetPassRepository.findByAccountAndActiveTrue(account)).thenReturn(List.of());
         when(tokenService.createToken(account, 60 * 60, TokenPurpose.PASSWORD_RESET))
                 .thenReturn(new GeneratedToken("raw-reset-token", newToken));
@@ -191,6 +194,25 @@ class AccountPasswordResetServiceTest {
         ResetPassDetails savedRequest = resetRequestCaptor.getValue();
         assertSame(account, savedRequest.getAccount());
         assertSame(newToken, savedRequest.getVerificationToken());
+    }
+
+    @Test
+    void requestPasswordReset_shouldFindAccountByEmailAddress() {
+        Account account = Account.builder()
+                .username("testuser")
+                .email("test@example.com")
+                .build();
+        VerificationToken newToken = verificationToken(account, TokenPurpose.PASSWORD_RESET);
+        when(accountRepository.findByUsernameOrEmail("test@example.com", "test@example.com"))
+                .thenReturn(Optional.of(account));
+        when(resetPassRepository.findByAccountAndActiveTrue(account)).thenReturn(List.of());
+        when(tokenService.createToken(account, 60 * 60, TokenPurpose.PASSWORD_RESET))
+                .thenReturn(new GeneratedToken("raw-reset-token", newToken));
+
+        String response = passwordResetService.requestPasswordReset(" Test@Example.COM ");
+
+        assertEquals("If an account exists, a password reset email will be sent.", response);
+        verify(mailService).sendPasswordResetMail("test@example.com", "raw-reset-token");
     }
 
     private VerificationToken verificationToken(Account account, TokenPurpose purpose) {

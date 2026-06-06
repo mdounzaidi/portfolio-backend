@@ -31,8 +31,8 @@ public class AccountPasswordResetService {
     @Transactional
     public String requestPasswordReset(String userName) {
         String response = "If an account exists, a password reset email will be sent.";
-        String username = identifierNormalizer.username(userName);
-        return accountRepository.findByUsername(username)
+        String identifier = identifierNormalizer.username(userName);
+        return accountRepository.findByUsernameOrEmail(identifier, identifier)
                 .map(account -> {
                     List<ResetPassDetails> oldRequests = resetPassRepository.findByAccountAndActiveTrue(account);
                     oldRequests.forEach(resetRequest -> {

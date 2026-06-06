@@ -1,8 +1,9 @@
 spring:
   jpa:
-    hibernate:
-      ddl-auto: validate
     show-sql: false
+
+  flyway:
+    baseline-on-migrate: ${SPRING_FLYWAY_BASELINE_ON_MIGRATE:false}
 
 app:
   mail:

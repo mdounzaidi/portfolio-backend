@@ -4,6 +4,7 @@ import com.mdounzaidi.portfolio_backend.account.entity.TokenPurpose;
 import com.mdounzaidi.portfolio_backend.account.entity.VerificationToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,4 +15,6 @@ public interface TokenRepository extends JpaRepository<VerificationToken, Long> 
             Account account,
             TokenPurpose purpose
     );
+
+    long deleteByExpireAtBefore(LocalDateTime cutoff);
 }

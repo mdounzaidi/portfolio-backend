@@ -21,7 +21,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -191,6 +193,22 @@ class AccountServiceTest {
         Account result = accountService.getCurrentAccount();
 
         assertSame(account, result);
+    }
+
+    @Test
+    void getCurrentAccount_shouldUseJwtAccountIdBeforeUsername() {
+        Account account = Account.builder()
+                .id(10L)
+                .username("newusername")
+                .build();
+        setJwtAuthentication(10L);
+        when(accountRepository.findById(10L)).thenReturn(Optional.of(account));
+
+        Account result = accountService.getCurrentAccount();
+
+        assertSame(account, result);
+        verify(accountRepository).findById(10L);
+        verify(accountRepository, never()).findByUsername(anyString());
     }
 
     @Test
@@ -379,6 +397,19 @@ class AccountServiceTest {
     private void setAuthenticationName(String username) {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getName()).thenReturn(username);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private void setJwtAuthentication(long accountId) {
+        Authentication authentication = mock(Authentication.class);
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "HS256")
+                .subject("oldusername")
+                .claim("accountId", accountId)
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(60))
+                .build();
+        when(authentication.getPrincipal()).thenReturn(jwt);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

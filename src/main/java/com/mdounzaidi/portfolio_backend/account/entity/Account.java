@@ -19,6 +19,7 @@ import java.util.Set;
 @Builder
 @Entity
 @Table(
+        schema = "account",
         name = "accounts",
         indexes = {
                 @Index(name = "idx_accounts_username", columnList = "username"),
@@ -56,6 +57,7 @@ public class Account {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
+            schema = "account",
             name = "account_roles",
             joinColumns = @JoinColumn(name = "account_id")
     )

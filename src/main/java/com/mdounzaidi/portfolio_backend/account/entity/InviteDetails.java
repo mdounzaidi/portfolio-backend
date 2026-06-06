@@ -13,6 +13,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(
+        schema = "account",
         name = "invite_details",
         indexes = {
                 @Index(name = "idx_invite_details_email", columnList = "email"),

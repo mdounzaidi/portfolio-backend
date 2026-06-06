@@ -17,6 +17,8 @@ public class ArticleResponse {
     private String slug;
     private String content;
     private String authorName;
+    private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime publishedAt;
     private ArticleStatus articleStatus;
 }

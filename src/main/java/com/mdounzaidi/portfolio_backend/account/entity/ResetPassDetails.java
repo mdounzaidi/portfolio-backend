@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 @Setter
 @Entity
 @Table(
+        schema = "account",
         name = "reset_pass_details",
         indexes = {
                 @Index(name = "idx_reset_pass_account_active", columnList = "account_id, active"),

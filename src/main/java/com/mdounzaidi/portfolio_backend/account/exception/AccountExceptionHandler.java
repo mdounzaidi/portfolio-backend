@@ -6,6 +6,9 @@ import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -55,6 +58,23 @@ public class AccountExceptionHandler {
     @ExceptionHandler(AccountAuthorizationException.class)
     public ResponseEntity<ProblemDetail> handleAccountAuthorization(AccountAuthorizationException ex) {
         return buildProblem(HttpStatus.FORBIDDEN, "Forbidden", ex.getMessage());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException ex) {
+        return buildProblem(HttpStatus.UNAUTHORIZED, "Unauthorized", "Invalid credentials");
+    }
+
+    @ExceptionHandler({
+            AccessDeniedException.class,
+            AuthorizationDeniedException.class
+    })
+    public ResponseEntity<ProblemDetail> handleAccessDenied(Exception ex) {
+        return buildProblem(
+                HttpStatus.FORBIDDEN,
+                "Forbidden",
+                "You do not have permission to access this resource"
+        );
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

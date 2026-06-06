@@ -4,6 +4,7 @@ import com.mdounzaidi.portfolio_backend.account.dto.AccountResponse;
 import com.mdounzaidi.portfolio_backend.account.exception.AccountExceptionHandler;
 import com.mdounzaidi.portfolio_backend.account.exception.DuplicateAccountException;
 import com.mdounzaidi.portfolio_backend.account.exception.InvalidTokenException;
+import com.mdounzaidi.portfolio_backend.account.service.AccountAuthService;
 import com.mdounzaidi.portfolio_backend.account.service.AccountInviteService;
 import com.mdounzaidi.portfolio_backend.account.service.AccountPasswordResetService;
 import com.mdounzaidi.portfolio_backend.account.service.AccountService;
@@ -43,6 +44,9 @@ class AccountPublicControllerTest {
     @Mock
     private AccountInviteService accountInviteService;
 
+    @Mock
+    private AccountAuthService accountAuthService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -54,7 +58,8 @@ class AccountPublicControllerTest {
                         accountService,
                         accountPasswordResetService,
                         accountVerificationService,
-                        accountInviteService
+                        accountInviteService,
+                        accountAuthService
                 ))
                 .setControllerAdvice(new AccountExceptionHandler())
                 .setValidator(validator)
@@ -125,6 +130,17 @@ class AccountPublicControllerTest {
                         .param("token", "bad-token"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Invalid token"));
+    }
+
+    @Test
+    void resendVerificationEmail_shouldReturnAcceptedGenericMessage() throws Exception {
+        when(accountVerificationService.resendVerificationEmail("testuser"))
+                .thenReturn("If an unverified account exists, a verification email will be sent.");
+
+        mockMvc.perform(post("/api/public/verification/resend")
+                        .param("identifier", "testuser"))
+                .andExpect(status().isAccepted())
+                .andExpect(jsonPath("$.message").value("If an unverified account exists, a verification email will be sent."));
     }
 
     @Test

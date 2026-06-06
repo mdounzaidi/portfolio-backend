@@ -1,12 +1,7 @@
 package com.mdounzaidi.portfolio_backend.account.controller;
 
-import com.mdounzaidi.portfolio_backend.account.dto.AccountRequest;
-import com.mdounzaidi.portfolio_backend.account.dto.AccountResponse;
-import com.mdounzaidi.portfolio_backend.account.dto.CredentialRequest;
-import com.mdounzaidi.portfolio_backend.account.service.AccountInviteService;
-import com.mdounzaidi.portfolio_backend.account.service.AccountPasswordResetService;
-import com.mdounzaidi.portfolio_backend.account.service.AccountService;
-import com.mdounzaidi.portfolio_backend.account.service.AccountVerificationService;
+import com.mdounzaidi.portfolio_backend.account.dto.*;
+import com.mdounzaidi.portfolio_backend.account.service.*;
 import com.mdounzaidi.portfolio_backend.common.dto.MessageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -26,6 +21,13 @@ public class AccountPublicController {
     private final AccountPasswordResetService accountPasswordReset;
     private final AccountVerificationService accountVerificationService;
     private final AccountInviteService accountInviteService;
+    private final AccountAuthService accountAuthService;
+
+
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
+        return ResponseEntity.ok(accountAuthService.login(loginRequest));
+    }
 
     @PostMapping("/register")
     public ResponseEntity<AccountResponse> registerAccount(@Valid @RequestBody AccountRequest accountRequest) {
@@ -36,6 +38,13 @@ public class AccountPublicController {
     @GetMapping("/verify")
     public ResponseEntity<MessageResponse> verifyAccount(@RequestParam @NotBlank String token) {
         return ResponseEntity.ok(new MessageResponse(accountVerificationService.verifyEmail(token)));
+    }
+
+    @PostMapping("/verification/resend")
+    public ResponseEntity<MessageResponse> resendVerificationEmail(@RequestParam @NotBlank String identifier) {
+        return ResponseEntity
+                .accepted()
+                .body(new MessageResponse(accountVerificationService.resendVerificationEmail(identifier)));
     }
 
     @PostMapping({"/complete-invite", "/invites/complete"})

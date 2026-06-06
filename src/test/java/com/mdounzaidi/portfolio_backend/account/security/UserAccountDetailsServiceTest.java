@@ -3,6 +3,7 @@ package com.mdounzaidi.portfolio_backend.account.security;
 import com.mdounzaidi.portfolio_backend.account.entity.Account;
 import com.mdounzaidi.portfolio_backend.account.repository.AccountRepository;
 import com.mdounzaidi.portfolio_backend.account.service.AccountIdentifierNormalizer;
+import com.mdounzaidi.portfolio_backend.account.service.AccountLoginPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,13 +26,17 @@ class UserAccountDetailsServiceTest {
     @Mock
     private AccountRepository accountRepository;
 
+    @Mock
+    private AccountLoginPolicy accountLoginPolicy;
+
     private UserAccountDetailsService userDetailsService;
 
     @BeforeEach
     void setUp() {
         userDetailsService = new UserAccountDetailsService(
                 accountRepository,
-                new AccountIdentifierNormalizer()
+                new AccountIdentifierNormalizer(),
+                accountLoginPolicy
         );
     }
 
@@ -41,18 +46,20 @@ class UserAccountDetailsServiceTest {
                 .username("testuser")
                 .password("encoded-password")
                 .build();
-        when(accountRepository.findByUsername("testuser")).thenReturn(Optional.of(account));
+        when(accountRepository.findByUsernameOrEmail("testuser", "testuser")).thenReturn(Optional.of(account));
+        when(accountLoginPolicy.unlockIfLockExpired(account)).thenReturn(account);
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(" TestUser ");
 
         assertInstanceOf(UserAccountDetails.class, userDetails);
         assertEquals("testuser", userDetails.getUsername());
-        verify(accountRepository).findByUsername("testuser");
+        verify(accountRepository).findByUsernameOrEmail("testuser", "testuser");
+        verify(accountLoginPolicy).unlockIfLockExpired(account);
     }
 
     @Test
     void loadUserByUsername_shouldThrowUsernameNotFoundException_whenAccountDoesNotExist() {
-        when(accountRepository.findByUsername("missinguser")).thenReturn(Optional.empty());
+        when(accountRepository.findByUsernameOrEmail("missinguser", "missinguser")).thenReturn(Optional.empty());
 
         assertThrows(
                 UsernameNotFoundException.class,

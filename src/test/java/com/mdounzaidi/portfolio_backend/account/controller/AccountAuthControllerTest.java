@@ -110,6 +110,21 @@ class AccountAuthControllerTest {
     }
 
     @Test
+    void updatePassword_shouldReturnNoContent_whenOldPasswordIsWeakButNewPasswordIsStrong() throws Exception {
+        when(accountService.changePassword(any())).thenReturn("password updated");
+
+        mockMvc.perform(patch("/api/auth/me/password")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "oldPassword": "weak",
+                                  "newPassword": "NewPass@123"
+                                }
+                                """))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test
     void updatePassword_shouldReturnBadRequest_whenPasswordIsWeak() throws Exception {
         mockMvc.perform(post("/api/auth/change-password")
                         .contentType("application/json")
